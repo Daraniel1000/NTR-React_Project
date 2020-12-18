@@ -1,12 +1,34 @@
 import './App.css';
-import data from "./data";
-import { useState, Component } from 'react';
+import { useState, Component, useEffect } from 'react';
 
 function App() {
-  const [state, setState] = useState({ view: "1", group: "1a", teacher: 0 });
+  const [state, setState] = useState({ view: "4", group: "1a", teacher: 0, data:undefined });
   function changeView(e) {
-    setState(st => st = { view: e.target.id, group: "1a", teacher: 0 });
+    setState(st => st = { view: e.target.id, group: state.group, teacher: state.teacher, data:state.data });
   }
+  useEffect(()=>{
+    console.log(state);
+    if(state.data === undefined)
+    {
+      fetch('http://localhost:3004/data')
+        .then(res => res.json())
+        .then((data) => {
+          setState({ view: "1", group: "1a", teacher: 0, data:data })
+        })
+        .catch(console.log)
+    }
+    else
+    {
+      const requestOptions = {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/JSON' },
+        body: JSON.stringify(state.data)
+    };
+    fetch('http://localhost:3004/data', requestOptions)
+        .then(response => response.json())
+        .then(data => console.log(data));
+    }
+  })
   return (
     <div className="App">
       <header className="App-header">
@@ -40,6 +62,10 @@ function renderView(state, setState) {
           {renderSlot(state, setState)}
         </div>
       )
+      case "4":
+        return(
+          <h2>Ładowanie danych...</h2>
+        )
   }
 }
 
@@ -78,80 +104,69 @@ function renderSlot(state, setState) {
     let room = document.getElementById("room").value;
     let teacher = document.getElementById("teacher").value;
     let activity = { room: room, group: group, class: subject, slot: state.slot, teacher: teacher };
-    data.activities.push(activity);
-    setState(st => st = { view: "1", group: "1a", teacher: 0 })
+    let d = state.data;
+    d.activities.push(activity);
+    setState(st => st = { view: "1", group: state.group, teacher: state.teacher, data:d })
   }
   let slot = null;
-  data.activities.forEach(element => {
+  state.data.activities.forEach(element => {
     if (element["slot"] == state.slot && element["group"] === state.group) {
       slot = element;
     }
   });
   if (slot === null) {
-    slot = { class: data.classes[0], group: state.group, room: data.rooms[0], slot: Number(state.slot), teacher: data.teachers[0] };
+    slot = { class: state.data.classes[0], group: state.group, room: state.data.rooms[0], slot: Number(state.slot), teacher: state.data.teachers[0] };
   }
   let grouplist = [], roomlist = [], teachlist = [];
-  data.groups.forEach(element => {
+  state.data.groups.forEach(element => {
     if (element === slot.group) {
       grouplist.push(element);
     }
     else {
-      if (groupFree(element, slot.slot, data.activities)) {
+      if (groupFree(element, slot.slot, state.data.activities)) {
         grouplist.push(element);
       }
     }
   })
-  data.teachers.forEach(element => {
+  state.data.teachers.forEach(element => {
     if (element === slot.teacher) {
       teachlist.push(element);
     }
     else {
-      if (teacherFree(element, slot.slot, data.activities)) {
+      if (teacherFree(element, slot.slot, state.data.activities)) {
         teachlist.push(element);
       }
     }
   })
-  data.rooms.forEach(element => {
+  state.data.rooms.forEach(element => {
     if (element === slot.room) {
       roomlist.push(element);
     }
     else {
-      if (roomFree(element, slot.slot, data.activities)) {
+      if (roomFree(element, slot.slot, state.data.activities)) {
         roomlist.push(element);
       }
     }
   })
   return (
     <div>
-      <select id="class" className="form-control w-100">
-        {data.classes.map(val => {
-          if (val === slot.class) {
-            return (<option selected>{val}</option>)
-          }
+      <select defaultValue={slot.class} id="class" className="form-control w-100">
+        {state.data.classes.map(val => {
           return (<option>{val}</option>)
         })}
       </select>
-      <select id="group" className="form-control w-100">
-        {grouplist.map(val => {
-          if (val === slot.group) {
-            return (<option selected>{val}</option>)
-          }
+      <select id="group" className="form-control w-100" defaultValue={slot.group}>
+        {grouplist.map(val=>{
           return (<option>{val}</option>)
         })}
       </select>
-      <select id="room" className="form-control w-100">
+      <select id="room" className="form-control w-100" defaultValue={slot.room}>
         {roomlist.map(val => {
-          if (val === slot.room) {
-            return (<option selected>{val}</option>)
-          }
           return (<option>{val}</option>)
         })}
       </select>
-      <select id="teacher" className="form-control w-100">
+      <select id="teacher" className="form-control w-100" defaultValue={slot.teacher}>
         {teachlist.map(val => {
-          if (val === slot.teacher) {
-            return (<option selected>{val}</option>)
-          }
           return (<option>{val}</option>)
         })}
       </select>
@@ -162,46 +177,48 @@ function renderSlot(state, setState) {
 
 function renderTeachers(state, setState) {
   function changeTeacher(e) {
-    setState(state => state = { view: state.view, teacher: e.target.selectedIndex, group: state.group });
+    setState(state => state = { view: state.view, teacher: e.target.selectedIndex, group: state.group, data:state.data });
   }
   function editTeacher(e) {
-    data.activities.forEach(activity=>{
-      if(activity.teacher === data.teachers[state.teacher]){
+    state.data.activities.forEach(activity=>{
+      if(activity.teacher === state.data.teachers[state.teacher]){
         activity.teacher = e.target.value;
       }
     })
-    data.teachers[state.teacher] = e.target.value;
-    setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true });
+    state.data.teachers[state.teacher] = e.target.value;
+    setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true, data:state.data });
   }
   function removeTeacher(e) {
-    let teach = data.teachers[state.teacher]
-    data.teachers.splice(state.teacher, 1);
-    data.activities.forEach((activity, idx)=>{
+    let teach = state.data.teachers[state.teacher]
+    state.data.teachers.splice(state.teacher, 1);
+    let d = state.data
+    d.activities.forEach((activity, idx)=>{
       if(activity.teacher === teach){
-        data.activities.splice(idx, 1);
+        d.activities.splice(idx, 1);
       }
     })
-    if (state.teacher >= data.teachers.length) {
-      setState(st => st = { view: state.view, teacher: 0, group: state.group, refresh: true });
+    if (state.teacher >= d.teachers.length) {
+      setState(st => st = { view: state.view, teacher: 0, group: state.group, refresh: true, data:d });
     }
     else {
-      setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true });
+      setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true, data:d });
     }
   }
   function addTeacher(e) {
     let s = document.getElementById("addName");
-    data.teachers.push(s.value);
+    let d = state.data;
+    d.teachers.push(s.value);
     s.value = "";
-    setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true });
+    setState(st => st = { view: state.view, teacher: state.teacher, group: state.group, refresh: true, data:d });
   }
   return (
     <div>
       <div>
-        <select id="chooseTeacher" className="form-control w-100" onChange={changeTeacher}>
-          {data.teachers.map((val) =>
+        <select id="chooseTeacher" className="form-control w-100" onChange={changeTeacher} value={state.data.teachers[state.teacher]}>
+          {state.data.teachers.map((val) =>
             <option>{val}</option>)}
         </select>
-        <input type="text" value={data.teachers[state.teacher]} onChange={editTeacher} />
+        <input type="text" value={state.data.teachers[state.teacher]} onChange={editTeacher} />
         <button onClick={removeTeacher} className="btn btn-danger">usuń</button>
       </div>
       <div>
@@ -214,25 +231,24 @@ function renderTeachers(state, setState) {
 
 function renderMain(state, setState) {
   function changeGroup(e) {
-    setState(st => st = { view: state.view, teacher: state.teacher, group: e.target.value });
+    setState(st => st = { view: state.view, teacher: state.teacher, group: e.target.value, data:state.data });
   }
   function editSlot(e) {
-    setState(st => st = { view: "3", teacher: state.teacher, group: state.group, slot: e.target.id });
+    setState(st => st = { view: "3", teacher: state.teacher, group: state.group, slot: e.target.id, data:state.data });
   }
   let topRow = ["Godzina", "Pon", "Wt", "Śr", "Czw", "Pt"];
   let activitylist = {};
-  data.groups.forEach(element => {
+  state.data.groups.forEach(element => {
     activitylist[element] = [];
   });
-  data.activities.forEach(element => {
+  state.data.activities.forEach(element => {
     activitylist[element["group"]][element["slot"]] = element["room"] + " " + element["class"];
   });
   return (
     <div>
-      <select id="chooseClass" className="form-control w-25" onChange={changeGroup}>
-        {data.groups.map((val) => {
-          if(state.group === val) return(<option selected>{val}</option>)
-          else return(<option>{val}</option>)
+      <select id="chooseClass" className="form-control w-25" onChange={changeGroup} value={state.group}>
+        {state.data.groups.map((val) => {
+          return(<option>{val}</option>)
         })}
       </select>
       <div >
