@@ -5,9 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "debug",
+            "request": "launch",
+            "type": "chrome",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        },
+
+        {
             "type": "chrome",
             "request": "launch",
-            "name": "Launch Chrome",
+            "name": "release",
             "url": "http://localhost:3004",
             "webRoot": "${workspaceFolder}"
         }
