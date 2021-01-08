@@ -72,7 +72,7 @@ function renderView(state, setState) {
 function groupFree(group, slot, activities) {
   let ret = true;
   activities.forEach(element => {
-    if (element.slot === slot && element.group === group) {
+    if (element.slot == slot && element.group === group) {
       ret = false;
     }
   })
@@ -81,7 +81,7 @@ function groupFree(group, slot, activities) {
 function roomFree(room, slot, activities) {
   let ret = true;
   activities.forEach(element => {
-    if (element.slot === slot && element.room === room) {
+    if (element.slot == slot && element.room === room) {
       ret = false;
     }
   })
@@ -90,7 +90,7 @@ function roomFree(room, slot, activities) {
 function teacherFree(teacher, slot, activities) {
   let ret = true;
   activities.forEach(element => {
-    if (element.slot === slot && element.teacher === teacher) {
+    if (element.slot == slot && element.teacher === teacher) {
       ret = false;
     }
   })
